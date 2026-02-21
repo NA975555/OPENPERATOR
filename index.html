@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OPEPENATOR — Simple + Fluid</title>
+
+  <style>
+    :root{
+      --bg:#000;
+      --panel:rgba(15,15,15,.72);
+      --border:rgba(255,255,255,.12);
+      --text:#fff;
+      --muted:rgba(255,255,255,.68);
+      --accent:#00FF2A;
+
+      --radius:16px;
+      --radiusSm:12px;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      overflow:hidden;
+    }
+
+    #app{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    #preview{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+      z-index:0;
+    }
+
+    header{
+      position:fixed;
+      top:10px;
+      left:50%;
+      transform:translateX(-50%);
+      padding:10px 14px;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:var(--panel);
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      z-index:10;
+      max-width:min(980px, calc(100% - 16px));
+    }
+
+    header .title{
+      letter-spacing:1px;
+      font-weight:700;
+      color:var(--accent);
+      font-size:12px;
+      white-space:nowrap;
+    }
+
+    header .sep{
+      width:1px;
+      height:18px;
+      background:var(--border);
+      flex:0 0 auto;
+    }
+
+    header .hint{
+      font-size:11px;
+      color:var(--muted);
+      line-height:1.15;
+      white-space:nowrap;
+    }
+
+    .controls{
+      position:fixed;
+      bottom:12px;
+      left:50%;
+      transform:translateX(-50%);
+      display:flex;
+      gap:10px;
+      padding:10px;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:var(--panel);
+      backdrop-filter: blur(10px);
+      z-index:10;
+      flex-wrap:wrap;
+      justify-content:center;
+      max-width:min(980px, calc(100% - 16px));
+    }
+
+    button{
+      appearance:none;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.35);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:var(--radiusSm);
+      cursor:pointer;
+      font-size:12px;
+      letter-spacing:.2px;
+      transition: transform .08s, border-color .15s, background .15s;
+      white-space:nowrap;
+    }
+    button:hover{
+      border-color:rgba(255,255,255,.22);
+      background:rgba(0,0,0,.45);
+    }
+    button:active{ transform: translateY(1px); }
+
+.primary{
+      border-color: rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.35);
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .panel{
+      position:fixed;
+      right:12px;
+      top:64px;
+      width:min(320px, calc(100% - 24px));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:rgba(15,15,15,.64);
+      backdrop-filter: blur(10px);
+      padding:12px;
+      z-index:10;
+      display:none;
+    }
+    .panel.show{ display:block; }
+
+    .group{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px;
+      margin:10px 0;
+      background: rgba(0,0,0,.22);
+    }
+    .group .gtitle{
+      font-size:11px;
+      color:var(--accent);
+      letter-spacing:.12em;
+      margin-bottom:6px;
+    }
+
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:8px 0;
+    }
+    .row label{ font-size:11px; color:var(--muted); }
+    .row .val{ font-size:11px; color:var(--accent); font-variant-numeric: tabular-nums; }
+
+    input[type="range"]{
+      width:100%;
+      accent-color: var(--accent);
+    }
+
+    .toast{
+      position:fixed;
+      bottom:74px;
+      left:50%;
+      transform:translateX(-50%);
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:rgba(0,0,0,.72);
+      color:#fff;
+      font-size:12px;
+      opacity:0;
+      transition: opacity .2s;
+      pointer-events:none;
+      z-index:10;
+      max-width:min(520px, 90vw);
+      text-align:center;
+    }
+    .toast.show{ opacity:1; }
+
+    input[type=file]{ display:none; }
+
+    @media (max-width: 720px){
+      header{
+        top:8px;
+        width:calc(100% - 16px);
+        justify-content:space-between;
+      }
+      header .hint{ white-space:normal; }
+      .panel{
+        left:12px;
+        right:12px;
+        width:auto;
+        top:auto;
+        bottom:84px;
+        background:rgba(15,15,15,.58);
+      }
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/ccapture.js@1.1.0/build/CCapture.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+
+<body>
+  <div id="app">
+    <div id="preview"></div>
+
+    <header>
+      <div class="title">OPEPENATOR</div>
+      <div class="sep"></div>
+      <div class="hint">
+        Space+drag orbit · M/L/S/B keys · R surprise<br/>
+        Mode shape = per-cell tokens
+      </div>
+    </header>
+
+    <div class="controls">
+      <button id="modeBtn">Mode</button>
+      <button id="lookBtn">Look</button>
+      <button id="shapeBtn">Shape</button>
+      <button id="bgBtn">BG</button>
+      <button id="moreBtn">More</button>
+      <button id="randomBtn">Surprise</button>
+      <button id="mintBtn" class="primary">Mint</button>
+      <button id="exportBtn">Export</button>
+      <button id="importBtn">Import</button>
+      <input id="fileInput" type="file" accept=".json" />
+    </div>
+
+    <div class="panel" id="panel">
+      <div class="group">
+        <div class="gtitle">STROKE</div>
+        <div class="row"><label>Stroke Width</label><div class="val" id="swVal">0.0</div></div>
+        <input id="sw" type="range" min="0" max="12" step="0.1" value="0" />
+      </div>
+
+      <div class="group">
+        <div class="gtitle">DEPTH</div>
+        <div class="row"><label>Flat Depth</label><div class="val" id="fdVal">10</div></div>
+        <input id="fd" type="range" min="0" max="60" step="1" value="10" />
+      </div>
+
+      <div class="group">
+        <div class="gtitle">MOTION</div>
+        <div class="row"><label>Pulse Speed</label><div class="val" id="psVal">0.05</div></div>
+        <input id="ps" type="range" min="0.00" max="0.20" step="0.01" value="0.05" />
+
+        <div class="row"><label>Spacing</label><div class="val" id="spVal">1.00</div></div>
+        <input id="sp" type="range" min="0.75" max="1.60" step="0.01" value="1.00" />
+
+        <div class="row"><label>Scale</label><div class="val" id="scVal">1.00</div></div>
+        <input id="sc" type="range" min="0.40" max="2.50" step="0.01" value="1.00" />
+
+        <div class="row"><label>Rotation</label><div class="val" id="rtVal">0.00</div></div>
+        <input id="rt" type="range" min="-1.20" max="1.20" step="0.01" value="0.00" />
+      </div>
+
+      <div class="group">
+        <div class="gtitle">WAVE</div>
+        <div class="row"><label>Wave</label><div class="val" id="wvOnVal">OFF</div></div>
+        <button id="waveToggle">Toggle Wave</button>
+
+        <div class="row"><label>Wave Speed</label><div class="val" id="wsVal">0.10</div></div>
+        <input id="ws" type="range" min="0.00" max="0.50" step="0.01" value="0.10" />
+
+        <div class="row"><label>Wave Amp</label><div class="val" id="waVal">50</div></div>
+        <input id="wa" type="range" min="0" max="150" step="1" value="50" />
+
+        <div class="row"><label>Wave Freq</label><div class="val" id="wfVal">50</div></div>
+        <input id="wf" type="range" min="0" max="100" step="1" value="50" />
+      </div>
+
+      <div class="group">
+        <div class="gtitle">LIGHT</div>
+        <div class="row"><label>Shading</label><div class="val" id="liVal">OFF</div></div>
+        <button id="lightToggle">Toggle Shading</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    // ============================================================
+    // (7) GIF capture constants in one place
+    // ============================================================
+    const GIF_FPS = 30;
+    const GIF_TOTAL_FRAMES = 90;
+
+    // ============================================================
+    // Utils + UI
+    // ============================================================
+    const $ = (s) => document.querySelector(s);
+
+    const toastEl = $('#toast');
+    let toastTimer = null;
+    const toast = (msg) => {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1100);
+    };
+
+    const deepCopy = (x) => JSON.parse(JSON.stringify(x));
+
+    const COLORS = {
+      r: [255,0,0],
+      g: [0,255,0],
+      u: [0,0,255],
+      w: [255,255,255],
+      k: [0,0,0]
+    };
+
+    // ============================================================
+    // Modes
+    // Token format: "<shapeId><colorCode><optionalCornerDegrees>"
+    // shapeId:
+    // 1 Box, 2 Disc, 3 Tri, 4 Sphere, 6 Square (2D), 7 Quarter (2D corner)
+    // ============================================================
+    const MODES = [
+      {
+        name: "Opepen",
+        pattern: [
+          [0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0],
+          [0,0,'1g','1g','1g','1g',0,0],
+          [0,0,'1w','1k','1w','1k',0,0],
+          [0,0,'1r','1r','1r','1r',0,0],
+          [0,0,'1g','1g','1g','1g',0,0],
+          [0,0,0,0,0,0,0,0],
+          [0,0,'1u','1u','1u','1u',0,0]
+        ]
+      },
+      {
+        name: "Close Up",
+        pattern: [
+          ['1g','1g','1g','1g','1g','1g','1g','1g'],
+          ['1g','1g','1g','1g','1g','1g','1g','1g'],
+          ['1w','1w','1w','1w','1w','1w','1w','1w'],
+          ['1w','1w','1w','1k','1w','1w','1w','1k'],
+          ['1r','1r','1r','1r','1r','1r','1r','1r'],
+          ['1g','1g','1g','1g','1g','1g','1g','1g'],
+          ['1g','1g','1g','1g','1g','1g','1g','1g'],
+          ['1g','1g','1g','1g','1g','1g','1g','1g']
+        ]
+      },
+      {
+        name: "pixelpepe",
+        pattern: [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, '1g', '1g', 0, '1g', '1g', 0],
+          [0, '1g', '1g', '1g', '1g', '1g', '1g', '1g'],
+          ['1g', '1g', '1w', '1k', '1w', '1w', '1k', '1g'],
+          ['1g', '1g', '1g', '1g', '1g', '1g', '1g', 0],
+          ['1g', '1g', '1g', '1r', '1r', '1r', '1r', 0],
+          ['1g', '1g', '1g', '1g', '1g', '1g', 0, 0],
+          ['1u', '1u', '1u', '1u', '1u', '1u', 0, 0]
+        ]
+      },
+      {
+        name: "suspepe",
+        pattern: [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, '1g', '1g', '1g', 0],
+          [0, '1g', '1g', '1g', '1w', '1w', '1w', 0],
+          [0, '1k', '1w', '1w', '1k', '1w', '1w', 0],
+          [0, '1r', '1r', '1r', '1r', '1r', '1r', 0],
+          [0, '1g', '1g', '1g', '1g', '1g', '1g', 0],
+          [0, '1u', '1u', '1u', '1u', '1u', '1u', 0]
+        ]
+      },
+      {
+        name: "bongrip",
+        pattern: [
+          ['1w', '1g', '1g', '1g', '1g', '1g', '1g', 0],
+          ['1w', '1w', '1w', '1g', '1g', '1g', '1g', '1g'],
+          ['1g', '1w', '1w', '1w', '1k', '1w', '1w', '1k'],
+          ['1w', '1g', '1w', '1w', '1k', '1w', '1w', '1k'],
+          ['1g', '1r', '1w', '1r', '1r', '1r', 0, 0],
+          ['1g', '1r', '1r', '1g', '1g', '1g', 0, '1g'],
+          ['1g', '1g', '1g', '1g', '1g', '1g', 0, '1g'],
+          ['1u', '1u', '1u', '1u', '1u', '1u', 0, '1g']
+        ]
+      },
+      {
+        name: "reducted",
+        pattern: [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, '2k', '2w', 0, 0, 0],
+          [0, 0, 0, '2r', '2r', 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, '2g', '2g', 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0]
+        ]
+      },
+      {
+        name: "Core",
+        pattern: [
+          [0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0],
+          [0,0,'7w0','6w','6w','7w90',0,0],
+          [0,0,'6w','6w','6w','6w',0,0],
+          [0,0,'6w','6w','6w','6w',0,0],
+          [0,0,'7w270','6w','6w','7w180',0,0],
+          [0,0,0,0,0,0,0,0],
+          [0,0,'7w270','6w','6w','7w180',0,0]
+        ]
+      },
+      {
+        name: "Opepen 8x8",
+        pattern: [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, '6g', '7g270', '7g180', '7g270', 0, 0],
+          [0, 0, '7k90', '7w0', '7k90', '7w0', 0, 0],
+          [0, 0, '6r', '6r', '6r', '6r', 0, 0],
+          [0, 0, '7g90', '6g', '6g', '7g0', 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, '7g180', '6g', '6g', '7g270', 0, 0]
+        ]
+      },
+
+      {
+        name: "Opepen 4",
+        pattern: [
+          [0,0,0,0,0,0,0,0],
+          [0,0,0,0,0,0,0,0],
+          [0,0,'6w','6w','6w','6w',0,0],
+          [0,0,'6w','6w','6w','6w',0,0],
+          [0,0,'6w','6w','6w','6w',0,0],
+          [0,0,'6w','6w','6w','6w',0,0],
+          [0,0,0,0,0,0,0,0],
+          [0,0,'6w','6w','6w','6w',0,0]
+        ]
+      }
+    ];
+
+    const LOOKS = [
+      { name:"Clean", bg:[255,255,255], flicker:false, lightsOn:false, strokeWidth:0,   strokeMode:"auto",  spacing:1.0,  scale:1.0,  rotation:0.0,  pulseSpeed:0.05, wave:false, waveAmp:50, waveFreq:50, waveSpeed:0.1 },
+      { name:"Noir",  bg:[0,0,0],       flicker:false, lightsOn:true,  strokeWidth:2, strokeMode:"white", spacing:1.05, scale:1.1,  rotation:0.15, pulseSpeed:0.06, wave:false, waveAmp:40, waveFreq:40, waveSpeed:0.12 },
+     { name:"Void Ink", bg:[0,0,0],    flicker:false, lightsOn:false, strokeWidth:2, strokeMode:"white", spacing:1.00, scale:1.00, rotation:0.00, pulseSpeed:0.05, wave:false, waveAmp:50, waveFreq:50, waveSpeed:0.10, inkRGBOnly:true },
+      { name:"Party", bg:[255,255,255], flicker:true,  lightsOn:true,  strokeWidth:2, strokeMode:"auto",  spacing:1.15, scale:1.25, rotation:0.35, pulseSpeed:0.09, wave:true,  waveAmp:90, waveFreq:65, waveSpeed:0.18 }
+    ];
+    
+const SHAPES = [
+  { id:'M', name:'Mode' },
+  { id:'R', name:'Random' },   // NEW
+  { id:'1', name:'Box' },
+  { id:'2', name:'Disc' },
+  { id:'3', name:'Tri' },
+  { id:'4', name:'Sphere' },
+  { id:'6', name:'Square' },
+  { id:'7', name:'Quarter' }
+];
+    
+    // Shapes allowed for "Shape: Random" (exclude Mode and Random ids)
+const RANDOM_SHAPE_POOL = ['1','2','3','4','6','7'];
+
+
+    const BG_CYCLE = [
+      { name:'White', rgb:[255,255,255], flicker:false },
+      { name:'Black', rgb:[0,0,0],       flicker:false },
+      { name:'Red',   rgb:[255,0,0],     flicker:false },
+      { name:'Green', rgb:[0,255,0],     flicker:false },
+      { name:'Blue',  rgb:[0,0,255],     flicker:false },
+      { name:'Party', rgb:[255,255,255], flicker:true }
+    ];
+
+    // ============================================================
+    // State (current + targets for smoothing)
+    // ============================================================
+    const state = {
+      visibilityPattern: deepCopy(MODES[0].pattern),
+      modeIndex: 0,
+      lookIndex: 0,
+      shapeIndex: 0, // default Mode
+      bgIndex: 0,
+
+      // BG current/target
+      bgColor: deepCopy(LOOKS[0].bg),
+      tBgColor: deepCopy(LOOKS[0].bg),
+      isFlickering: LOOKS[0].flicker,
+
+      // Current values (smoothed)
+      lightsOn: LOOKS[0].lightsOn,
+      strokeWidth: LOOKS[0].strokeWidth,
+      spacing: LOOKS[0].spacing,
+      scale: LOOKS[0].scale,
+      rotation: LOOKS[0].rotation,
+      pulsatingSpeed: LOOKS[0].pulseSpeed,
+
+      waveAnimationEnabled: LOOKS[0].wave,
+      waveAmplitude: LOOKS[0].waveAmp,
+      waveFrequency: LOOKS[0].waveFreq,
+      waveSpeed: LOOKS[0].waveSpeed,
+      waveTime: 0,
+
+      strokeMode: LOOKS[0].strokeMode,
+
+      // Targets (UI writes here)
+      tStrokeWidth: LOOKS[0].strokeWidth,
+      tSpacing: LOOKS[0].spacing,
+      tScale: LOOKS[0].scale,
+      tRotation: LOOKS[0].rotation,
+      tPulsatingSpeed: LOOKS[0].pulseSpeed,
+      tWaveAmplitude: LOOKS[0].waveAmp,
+      tWaveFrequency: LOOKS[0].waveFreq,
+      tWaveSpeed: LOOKS[0].waveSpeed,
+
+      // Depth (fixed bug: actually smooth flatDepth toward tFlatDepth)
+      flatDepth: 10,
+      tFlatDepth: 10,
+
+      canvasSize: 800,
+      cellSize: 100,
+      pulsatingValues: [],
+      quarterCorners: [],
+      randomShapePattern: Array.from({length: 8}, () => Array.from({length: 8}, () => null)),
+
+
+      // Opepen 4 (4 internal shapes) colors; randomized on reset
+      opepen4Colors: ['r','g','u','w'],
+
+      // flicker
+      backgroundColors: [[0,0,0],[255,255,255],[0,255,0],[0,0,255],[255,0,0]],
+      flickerIndex: 0,
+      flickerFrameCounter: 0,
+      flickerSpeed: 5,
+
+      // gif
+      canvasEl: null,
+      gifCapturer: null,
+      gifRecording: false,
+      gifFrameCount: 0
+    };
+
+    function resetPulsingPhases() {
+      state.pulsatingValues = Array.from({length: 8}, () =>
+        Array.from({length: 8}, () => Math.random() * Math.PI * 2)
+      );
+
+      // Stable random quarter rotation per cell (0/90/180/270)
+      const opts = [0, 90, 180, 270];
+      state.quarterCorners = Array.from({length: 8}, () =>
+        Array.from({length: 8}, () => opts[(Math.random() * 4) | 0])
+      );
+
+      // Opepen 4: random RGBWB (r,g,u,w,k) colors for the 4 SVG shapes
+      const palette = ['r','g','u','w','k'];
+      state.opepen4Colors = Array.from({length: 4}, () => palette[(Math.random() * palette.length) | 0]);
+    }
+
+    function syncBgButtonLabel() {
+      const B = BG_CYCLE[state.bgIndex];
+      $('#bgBtn').textContent = `BG: ${B.name}`;
+    }
+
+    // auto-switch Shape to Mode if the pattern uses multiple distinct shapeIds
+    function patternWantsMode(pattern) {
+      const shapes = new Set();
+      for (let i=0; i<8; i++){
+        for (let j=0; j<8; j++){
+          const cell = pattern[i][j];
+          if (typeof cell === 'string' && cell.length >= 1) {
+            shapes.add(cell.charAt(0));
+            if (shapes.size > 1) return true;
+          }
+        }
+      }
+      return false;
+    }
+    function rebuildRandomShapePattern() {
+  // Build an 8x8 map of shapeIds aligned to the current mode's occupied cells.
+  // Empty cells stay null so the mode silhouette remains intact.
+  const pat = state.visibilityPattern;
+
+  state.randomShapePattern = Array.from({length: 8}, (_, i) =>
+    Array.from({length: 8}, (_, j) => {
+      const cell = pat[i][j];
+      if (!cell) return null;
+      return RANDOM_SHAPE_POOL[(Math.random() * RANDOM_SHAPE_POOL.length) | 0];
+    })
+  );
+}
+
+
+    function applyMode(index) {
+      state.modeIndex = ((index % MODES.length) + MODES.length) % MODES.length;
+      state.visibilityPattern = deepCopy(MODES[state.modeIndex].pattern);
+      resetPulsingPhases();
+      rebuildRandomShapePattern();
+
+
+      const modeName = MODES[state.modeIndex]?.name;
+
+      // Always default Opepen 4 to Shape: Mode so the composite shows immediately
+      if (modeName === "Opepen 4") {
+        state.shapeIndex = 0;
+      } else {
+        // If this mode relies on mixed per-cell shapes, force Shape: Mode
+        if (patternWantsMode(state.visibilityPattern)) {
+          state.shapeIndex = 0;
+        }
+      }
+
+      $('#modeBtn').textContent = `Mode: ${MODES[state.modeIndex].name}`;
+      $('#shapeBtn').textContent = `Shape: ${SHAPES[state.shapeIndex].name}`;
+      toast(`Mode: ${MODES[state.modeIndex].name}`);
+    }
+
+    function applyBg(index){
+      state.bgIndex = ((index % BG_CYCLE.length) + BG_CYCLE.length) % BG_CYCLE.length;
+      const B = BG_CYCLE[state.bgIndex];
+
+      state.tBgColor = deepCopy(B.rgb);
+      state.isFlickering = !!B.flicker;
+
+      // snap current bg when changing modes for clean response
+      state.bgColor = deepCopy(state.tBgColor);
+
+      syncBgButtonLabel();
+      toast(`BG: ${B.name}`);
+    }
+
+    function applyLook(index) {
+      state.lookIndex = ((index % LOOKS.length) + LOOKS.length) % LOOKS.length;
+      const L = LOOKS[state.lookIndex];
+
+      // BG + flicker from look
+      if (Array.isArray(L.bg) && L.bg.length === 3) {
+        state.tBgColor = deepCopy(L.bg);
+        state.bgColor = deepCopy(state.tBgColor);
+      }
+      state.isFlickering = !!L.flicker;
+
+      // Sync bgIndex label to closest BG_CYCLE entry
+      let matched = -1;
+      for (let i = 0; i < BG_CYCLE.length; i++) {
+        const t = BG_CYCLE[i];
+        const same =
+          t.rgb[0] === state.tBgColor[0] &&
+          t.rgb[1] === state.tBgColor[1] &&
+          t.rgb[2] === state.tBgColor[2] &&
+          !!t.flicker === state.isFlickering;
+        if (same) { matched = i; break; }
+      }
+      state.bgIndex = (matched >= 0) ? matched : state.bgIndex;
+      syncBgButtonLabel();
+
+      // Targets
+      state.lightsOn = !!L.lightsOn;
+      state.strokeMode = L.strokeMode;
+
+      state.tStrokeWidth = +L.strokeWidth;
+      state.tSpacing = +L.spacing;
+      state.tScale = +L.scale;
+      state.tRotation = +L.rotation;
+      state.tPulsatingSpeed = +L.pulseSpeed;
+
+      state.waveAnimationEnabled = !!L.wave;
+      state.tWaveAmplitude = +L.waveAmp;
+      state.tWaveFrequency = +L.waveFreq;
+      state.tWaveSpeed = +L.waveSpeed;
+
+      $('#lookBtn').textContent = `Look: ${L.name}`;
+      toast(`Look: ${L.name}`);
+      syncPanel();
+    }
+
+    function updateFlickeringBackground() {
+      if (!state.isFlickering) return;
+      state.flickerFrameCounter++;
+      if (state.flickerFrameCounter >= state.flickerSpeed) {
+        state.bgColor = state.backgroundColors[state.flickerIndex];
+        state.flickerIndex = (state.flickerIndex + 1) % state.backgroundColors.length;
+        state.flickerFrameCounter = 0;
+      }
+    }
+
+function setFillColorP5(code) {
+      // Optional selective ink: only convert r/g/u to k, keep w/k intact
+      const L = LOOKS[state.lookIndex] || {};
+      let useCode = code;
+
+      if (L.inkRGBOnly) {
+        if (code === 'r' || code === 'g' || code === 'u') useCode = 'k';
+        // keep 'w' as white, keep 'k' as black, and leave any other codes untouched
+      }
+
+      const c = COLORS[useCode] || [255,255,255];
+      fill(c[0], c[1], c[2], 255);
+    }
+
+
+
+    function setStrokeP5() {
+      strokeWeight(state.strokeWidth);
+      if (state.strokeWidth <= 0) { noStroke(); return; }
+      if (state.strokeMode === "black") stroke(0);
+      else if (state.strokeMode === "white") stroke(255);
+      else {
+        const luma = 0.2126*state.bgColor[0] + 0.7152*state.bgColor[1] + 0.0722*state.bgColor[2];
+        stroke(luma > 128 ? 0 : 255);
+      }
+    }
+
+    // Parse token "<shape><color><optionalCornerDegrees>"
+    function parseCellToken(cell) {
+      const fallback = { shapeId: '1', colorCode: 'w', corner: 0 };
+      if (typeof cell !== 'string' || cell.length < 2) return fallback;
+
+      const shapeId = cell.charAt(0);
+      const colorCode = cell.charAt(1);
+
+      let corner = 0;
+      if (shapeId === '7' && cell.length > 2) {
+        const n = parseInt(cell.slice(2), 10);
+        corner = Number.isFinite(n) ? n : 0;
+      }
+      return { shapeId, colorCode, corner };
+    }
+
+    // Quarter tile
+    function drawQuarterTile(size, cornerDeg) {
+      const r = size / 2;
+      let cx = -r, cy = -r, a0 = 0, a1 = HALF_PI;
+
+      if (cornerDeg === 0) {        cx = -r; cy = -r; a0 = 0;           a1 = HALF_PI; }
+      else if (cornerDeg === 90) {  cx =  r; cy = -r; a0 = HALF_PI;     a1 = PI; }
+      else if (cornerDeg === 180) { cx =  r; cy =  r;  a0 = PI;         a1 = PI + HALF_PI; }
+      else if (cornerDeg === 270) { cx = -r; cy =  r;  a0 = PI+HALF_PI; a1 = TWO_PI; }
+
+      const steps = 24;
+      beginShape();
+      vertex(cx, cy);
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const a = lerp(a0, a1, t);
+        vertex(cx + cos(a) * r, cy + sin(a) * r);
+      }
+      endShape(CLOSE);
+    }
+
+    // ============================================================
+    // Opepen 4 — SVG multi-cell shapes (WEBGL via sampled vertices)
+    // ============================================================
+    const OPEPEN4_VIEW = { w: 2000.91, h: 2000.0 };
+
+    const OPEPEN4_SHAPES = [
+      {
+        // top-left rounded blob
+        d: "M750.91,1000h0c-138.07,0-250-111.93-250-250v-250h250c138.07,0,250,111.93,250,250h0c0,138.07-111.93,250-250,250Z",
+        anchorCell: { i: 2, j: 2 },
+        colorIndex: 0
+      },
+      {
+        // bottom arc/cap
+        d: "M1500.91,2000H500.91c0-138.07,111.93-250,250-250h500c138.07,0,250,111.93,250,250h0Z",
+        anchorCell: { i: 7, j: 3 },
+        colorIndex: 1
+      },
+      {
+        // mid mouth shape
+        d: "M1250.91,1500h-500c-138.07,0-250-111.93-250-250v-250h1000v250c0,138.07-111.93,250-250,250Z",
+        anchorCell: { i: 4, j: 3 },
+        colorIndex: 2
+      },
+      {
+        // circle as a sampled polygon
+        circle: { cx: 1250.91, cy: 750, r: 250 },
+        anchorCell: { i: 2, j: 5 },
+        colorIndex: 3
+      }
+    ];
+
+    function svgTokenizePath(d) {
+      return d.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g) || [];
+    }
+
+    function sampleCubic(p0, p1, p2, p3, steps) {
+      const pts = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const mt = 1 - t;
+        const x =
+          mt*mt*mt*p0.x +
+          3*mt*mt*t*p1.x +
+          3*mt*t*t*p2.x +
+          t*t*t*p3.x;
+        const y =
+          mt*mt*mt*p0.y +
+          3*mt*mt*t*p1.y +
+          3*mt*t*t*p2.y +
+          t*t*t*p3.y;
+        pts.push({ x, y });
+      }
+      return pts;
+    }
+
+    function svgPathToPolylines(d) {
+      const t = svgTokenizePath(d);
+      let k = 0;
+
+      let x = 0, y = 0;
+      let sx = 0, sy = 0;
+      let cmd = '';
+
+      const subs = [];
+      let cur = [];
+
+      const nextNum = () => parseFloat(t[k++]);
+
+      while (k < t.length) {
+        const tk = t[k++];
+        if (/[a-zA-Z]/.test(tk)) cmd = tk;
+        else { k--; }
+
+        if (cmd === 'M' || cmd === 'm') {
+          const nx = nextNum();
+          const ny = nextNum();
+          if (cmd === 'm') { x += nx; y += ny; } else { x = nx; y = ny; }
+
+          if (cur.length) subs.push(cur);
+          cur = [{ x, y }];
+          sx = x; sy = y;
+
+          while (k < t.length && !/[a-zA-Z]/.test(t[k])) {
+            const lx = nextNum();
+            const ly = nextNum();
+            if (cmd === 'm') { x += lx; y += ly; } else { x = lx; y = ly; }
+            cur.push({ x, y });
+          }
+        }
+
+        else if (cmd === 'L' || cmd === 'l') {
+          while (k < t.length && !/[a-zA-Z]/.test(t[k])) {
+            const nx = nextNum();
+            const ny = nextNum();
+            if (cmd === 'l') { x += nx; y += ny; } else { x = nx; y = ny; }
+            cur.push({ x, y });
+          }
+        }
+
+        else if (cmd === 'H' || cmd === 'h') {
+          while (k < t.length && !/[a-zA-Z]/.test(t[k])) {
+            const nx = nextNum();
+            if (cmd === 'h') x += nx; else x = nx;
+            cur.push({ x, y });
+          }
+        }
+
+        else if (cmd === 'V' || cmd === 'v') {
+          while (k < t.length && !/[a-zA-Z]/.test(t[k])) {
+            const ny = nextNum();
+            if (cmd === 'v') y += ny; else y = ny;
+            cur.push({ x, y });
+          }
+        }
+
+        else if (cmd === 'C' || cmd === 'c') {
+          while (k < t.length && !/[a-zA-Z]/.test(t[k])) {
+            const x1 = nextNum(), y1 = nextNum();
+            const x2 = nextNum(), y2 = nextNum();
+            const x3 = nextNum(), y3 = nextNum();
+
+            const p0 = { x, y };
+            const p1 = (cmd === 'c') ? { x: x + x1, y: y + y1 } : { x: x1, y: y1 };
+            const p2 = (cmd === 'c') ? { x: x + x2, y: y + y2 } : { x: x2, y: y2 };
+            const p3 = (cmd === 'c') ? { x: x + x3, y: y + y3 } : { x: x3, y: y3 };
+
+            const seg = sampleCubic(p0, p1, p2, p3, 22);
+            for (let i = 1; i < seg.length; i++) cur.push(seg[i]);
+
+            x = p3.x; y = p3.y;
+          }
+        }
+
+        else if (cmd === 'Z' || cmd === 'z') {
+          if (cur.length && (cur[cur.length-1].x !== sx || cur[cur.length-1].y !== sy)) {
+            cur.push({ x: sx, y: sy });
+          }
+          subs.push(cur);
+          cur = [];
+          x = sx; y = sy;
+        }
+
+        else {
+          // Unsupported path commands intentionally ignored (not needed for these shapes).
+        }
+      }
+
+      if (cur.length) subs.push(cur);
+      return subs;
+    }
+
+    function drawSvgPolylines(subpaths, scaleFactor) {
+      for (const pts of subpaths) {
+        beginShape();
+        for (const p of pts) vertex(p.x * scaleFactor, p.y * scaleFactor, 0);
+        endShape(CLOSE);
+      }
+    }
+
+    function drawOpepen4Composite(left, top, gridW, gridH, cellSize, spacing, dtScale) {
+      const scaleFactorX = gridW / OPEPEN4_VIEW.w;
+      const scaleFactorY = gridH / OPEPEN4_VIEW.h;
+      const s = Math.min(scaleFactorX, scaleFactorY);
+
+      push();
+      translate(left, top, 0);
+
+      for (let idx = 0; idx < OPEPEN4_SHAPES.length; idx++) {
+        const sh = OPEPEN4_SHAPES[idx];
+        const { i, j } = sh.anchorCell;
+
+        const phase = state.pulsatingValues[i][j];
+        const mult = (Number.isFinite(state.opepen4PulseMult) ? state.opepen4PulseMult : 1.0);
+        state.pulsatingValues[i][j] += (state.pulsatingSpeed * mult) * dtScale;
+
+        const sizeOffset = map(sin(phase), -0.1, 2, -cellSize/2, cellSize/1) * state.scale;
+        const twist = map(sin(phase), -1, 1, -HALF_PI/5, PI/5) * state.rotation;
+
+        let waveOffset = 0;
+        if (state.waveAnimationEnabled) {
+          const id = j + i * 8;
+          waveOffset = sin(id * state.waveFrequency * 0.01 + state.waveTime) * state.waveAmplitude;
+        }
+
+        setFillColorP5(state.opepen4Colors[sh.colorIndex] || 'w');
+
+        push();
+
+        // wave shift
+        translate(0, -waveOffset, 0);
+
+        // choose a stable rotation center
+        let cx = 0, cy = 0;
+        if (sh.circle) {
+          cx = sh.circle.cx; cy = sh.circle.cy;
+        } else {
+          // anchor cell center -> approximate svg center
+          cx = (j + 0.5) * (OPEPEN4_VIEW.w / 8);
+          cy = (i + 0.5) * (OPEPEN4_VIEW.h / 8);
+        }
+
+        translate(cx * s, cy * s, 0);
+        rotateX(twist);
+        rotateY(twist);
+
+        const breathe = Math.max(0.05, (cellSize + sizeOffset) / cellSize);
+        scale(breathe, breathe, 1);
+
+        translate(-cx * s, -cy * s, 0);
+
+        if (sh.circle) {
+          const steps = 64;
+          beginShape();
+          for (let a = 0; a < steps; a++) {
+            const t = (a / steps) * TWO_PI;
+            const x = sh.circle.cx + cos(t) * sh.circle.r;
+            const y = sh.circle.cy + sin(t) * sh.circle.r;
+            vertex(x * s, y * s, 0);
+          }
+          endShape(CLOSE);
+        } else {
+          const subs = svgPathToPolylines(sh.d);
+          drawSvgPolylines(subs, s);
+        }
+
+        pop();
+      }
+
+      pop();
+    }
+
+    // ============================================================
+    // Export / Import
+    // ============================================================
+    function getConfig() {
+      return {
+        version: "opepenator-simple-fluid-1.0",
+        timestamp: new Date().toISOString(),
+
+        modeIndex: state.modeIndex,
+        modeName: MODES[state.modeIndex]?.name,
+
+        lookIndex: state.lookIndex,
+        lookName: LOOKS[state.lookIndex]?.name,
+
+        shapeIndex: state.shapeIndex,
+        shapeName: SHAPES[state.shapeIndex]?.name,
+
+        bgIndex: state.bgIndex,
+        bgName: BG_CYCLE[state.bgIndex]?.name,
+
+        randomShapePattern: state.randomShapePattern,
+
+        strokeWidth: state.tStrokeWidth,
+        spacing: state.tSpacing,
+        scale: state.tScale,
+        rotation: state.tRotation,
+        pulsatingSpeed: state.tPulsatingSpeed,
+
+        waveAnimationEnabled: state.waveAnimationEnabled,
+        waveAmplitude: state.tWaveAmplitude,
+        waveFrequency: state.tWaveFrequency,
+        waveSpeed: state.tWaveSpeed,
+
+        // depth
+        flatDepth: state.tFlatDepth,
+
+        // Opepen 4 internal shape colors (keeps exported anim configs stable)
+        opepen4Colors: Array.isArray(state.opepen4Colors) ? state.opepen4Colors : null
+      };
+    }
+
+    function applyConfig(cfg) {
+      if (!cfg || typeof cfg !== 'object') throw new Error('Config invalid');
+
+      if (Number.isFinite(cfg.modeIndex)) applyMode(cfg.modeIndex);
+      if (Number.isFinite(cfg.lookIndex)) applyLook(cfg.lookIndex);
+
+      if (Number.isFinite(cfg.shapeIndex)) state.shapeIndex = ((cfg.shapeIndex % SHAPES.length) + SHAPES.length) % SHAPES.length;
+      if (Number.isFinite(cfg.bgIndex)) applyBg(cfg.bgIndex);
+
+      if (Number.isFinite(cfg.strokeWidth)) state.tStrokeWidth = +cfg.strokeWidth;
+      if (Number.isFinite(cfg.spacing)) state.tSpacing = +cfg.spacing;
+      if (Number.isFinite(cfg.scale)) state.tScale = +cfg.scale;
+      if (Number.isFinite(cfg.rotation)) state.tRotation = +cfg.rotation;
+      if (Number.isFinite(cfg.pulsatingSpeed)) state.tPulsatingSpeed = +cfg.pulsatingSpeed;
+
+      if (typeof cfg.waveAnimationEnabled === 'boolean') state.waveAnimationEnabled = cfg.waveAnimationEnabled;
+      if (Number.isFinite(cfg.waveAmplitude)) state.tWaveAmplitude = +cfg.waveAmplitude;
+      if (Number.isFinite(cfg.waveFrequency)) state.tWaveFrequency = +cfg.waveFrequency;
+      if (Number.isFinite(cfg.waveSpeed)) state.tWaveSpeed = +cfg.waveSpeed;
+
+      if (Number.isFinite(cfg.flatDepth)) state.tFlatDepth = +cfg.flatDepth;
+      if (Array.isArray(cfg.randomShapePattern) && cfg.randomShapePattern.length === 8) {
+  state.randomShapePattern = cfg.randomShapePattern;
+} else {
+  rebuildRandomShapePattern();
+}
+
+
+      if (Array.isArray(cfg.opepen4Colors) && cfg.opepen4Colors.length === 4) {
+        state.opepen4Colors = cfg.opepen4Colors.slice(0,4);
+      }
+
+      // If imported config selects Opepen 4, default to Shape: Mode unless user explicitly set otherwise
+      if (MODES[state.modeIndex]?.name === "Opepen 4" && !Number.isFinite(cfg.shapeIndex)) {
+        state.shapeIndex = 0;
+      }
+
+      syncButtons();
+      syncPanel();
+      toast('Imported.');
+    }
+
+    function downloadText(filename, text, mime = "application/json") {
+      const blob = new Blob([text], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+    }
+
+    // ============================================================
+    // GIF recording
+    // ============================================================
+    function setMintButtonLabel() {
+      const btn = $('#mintBtn');
+      if (!state.gifRecording) {
+        btn.textContent = 'Mint';
+        return;
+      }
+      btn.textContent = `Recording: ${state.gifFrameCount}/${GIF_TOTAL_FRAMES}`;
+    }
+
+    function startGifRecording() {
+      if (typeof window.CCapture === 'undefined') return toast('CCapture blocked / failed to load.');
+      if (!state.canvasEl) return toast('Canvas not ready.');
+      if (state.gifRecording) return;
+
+      state.gifCapturer = new CCapture({ format: 'gif', framerate: GIF_FPS, verbose: false });
+      state.gifFrameCount = 0;
+      state.gifRecording = true;
+      state.gifCapturer.start();
+      setMintButtonLabel();
+      toast('Recording...');
+    }
+
+    function stopGifRecording(save=true) {
+      if (!state.gifRecording || !state.gifCapturer) return;
+      state.gifRecording = false;
+      state.gifCapturer.stop();
+      if (save) state.gifCapturer.save();
+      state.gifCapturer = null;
+      setMintButtonLabel();
+      toast(save ? 'GIF exported.' : 'Recording stopped.');
+    }
+
+    // ============================================================
+    // Surprise
+    // ============================================================
+    function weightedPick(weights) {
+      const sum = weights.reduce((a,b)=>a+b, 0);
+      let r = Math.random() * sum;
+      for (let i=0; i<weights.length; i++){
+        r -= weights[i];
+        if (r <= 0) return i;
+      }
+      return weights.length - 1;
+    }
+
+    function surprise() {
+      applyMode(Math.floor(Math.random()*MODES.length));
+      applyLook(weightedPick([0.33, 0.27, 0.40]));
+
+      // shapes: prefer Mode/Box/Square; reduce chaos
+      const shapeIdx = weightedPick([0.45, 0.25, 0.08, 0.06, 0.06, 0.08, 0.02]);
+      state.shapeIndex = shapeIdx;
+
+      // If current mode is Opepen 4, force Shape: Mode so the composite is visible
+      if (MODES[state.modeIndex]?.name === "Opepen 4") state.shapeIndex = 0;
+
+      applyBg(weightedPick([0.24, 0.22, 0.10, 0.10, 0.10, 0.24]));
+
+      const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
+      state.tSpacing = clamp(state.tSpacing + (Math.random()-.5)*0.18, 0.75, 1.6);
+      state.tScale   = clamp(state.tScale   + (Math.random()-.5)*0.45, 0.4,  2.5);
+
+      const rotBump = (Math.random() < 0.8) ? (Math.random()-.5)*0.25 : (Math.random()-.5)*0.6;
+      state.tRotation = clamp(state.tRotation + rotBump, -1.2, 1.2);
+
+      state.tPulsatingSpeed = clamp(state.tPulsatingSpeed + (Math.random()-.5)*0.05, 0.00, 0.20);
+
+      if (Math.random() < 0.35) state.waveAnimationEnabled = !state.waveAnimationEnabled;
+      if (state.waveAnimationEnabled) {
+        state.tWaveAmplitude = Math.floor(clamp(state.tWaveAmplitude + (Math.random()-.5)*60, 0, 150));
+        state.tWaveFrequency = Math.floor(clamp(state.tWaveFrequency + (Math.random()-.5)*40, 0, 100));
+        state.tWaveSpeed     = clamp(state.tWaveSpeed + (Math.random()-.5)*0.18, 0.00, 0.50);
+      }
+
+      if (Math.random() < 0.4) {
+        state.tStrokeWidth = clamp(state.tStrokeWidth + (Math.random()-.5)*0.8, 0, 3.5);
+      }
+
+      resetPulsingPhases();
+      rebuildRandomShapePattern();
+      syncButtons();
+      syncPanel();
+      toast('Surprised.');
+    }
+
+    // ============================================================
+    // UI wiring
+    // ============================================================
+    const panelEl = $('#panel');
+    const moreBtn = $('#moreBtn');
+
+    function syncButtons(){
+      $('#shapeBtn').textContent = `Shape: ${SHAPES[state.shapeIndex].name}`;
+      $('#modeBtn').textContent  = `Mode: ${MODES[state.modeIndex].name}`;
+      $('#lookBtn').textContent  = `Look: ${LOOKS[state.lookIndex].name}`;
+      syncBgButtonLabel();
+      setMintButtonLabel();
+    }
+
+    function syncPanel(){
+      $('#swVal').textContent = (+state.tStrokeWidth).toFixed(1);
+      $('#psVal').textContent = (+state.tPulsatingSpeed).toFixed(2);
+      $('#spVal').textContent = (+state.tSpacing).toFixed(2);
+      $('#scVal').textContent = (+state.tScale).toFixed(2);
+      $('#rtVal').textContent = (+state.tRotation).toFixed(2);
+
+      $('#fdVal').textContent = Math.round(state.tFlatDepth);
+
+      $('#wvOnVal').textContent = state.waveAnimationEnabled ? 'ON' : 'OFF';
+      $('#wsVal').textContent = (+state.tWaveSpeed).toFixed(2);
+      $('#waVal').textContent = Math.round(state.tWaveAmplitude);
+      $('#wfVal').textContent = Math.round(state.tWaveFrequency);
+
+      $('#liVal').textContent = state.lightsOn ? 'ON' : 'OFF';
+
+      $('#sw').value = state.tStrokeWidth;
+      $('#ps').value = state.tPulsatingSpeed;
+      $('#sp').value = state.tSpacing;
+      $('#sc').value = state.tScale;
+      $('#rt').value = state.tRotation;
+
+      $('#fd').value = state.tFlatDepth;
+
+      $('#ws').value = state.tWaveSpeed;
+      $('#wa').value = state.tWaveAmplitude;
+      $('#wf').value = state.tWaveFrequency;
+    }
+
+    $('#modeBtn').addEventListener('click', () => applyMode(state.modeIndex + 1));
+    $('#lookBtn').addEventListener('click', () => applyLook(state.lookIndex + 1));
+
+    $('#shapeBtn').addEventListener('click', () => {
+      state.shapeIndex = (state.shapeIndex + 1) % SHAPES.length;
+      if (SHAPES[state.shapeIndex].id === 'R') rebuildRandomShapePattern();
+
+
+      // If in Opepen 4 mode and user cycles to non-Mode shapes, allow it.
+      // (They can still come back to Mode for the composite.)
+      $('#shapeBtn').textContent = `Shape: ${SHAPES[state.shapeIndex].name}`;
+      toast(`Shape: ${SHAPES[state.shapeIndex].name}`);
+    });
+
+    $('#bgBtn').addEventListener('click', () => applyBg(state.bgIndex + 1));
+
+    moreBtn.addEventListener('click', () => {
+      panelEl.classList.toggle('show');
+      moreBtn.textContent = panelEl.classList.contains('show') ? 'Less' : 'More';
+    });
+
+    $('#randomBtn').addEventListener('click', surprise);
+
+    $('#mintBtn').addEventListener('click', () => {
+      if (state.gifRecording) stopGifRecording(true);
+      else startGifRecording();
+    });
+
+    $('#exportBtn').addEventListener('click', () => {
+      const cfg = getConfig();
+      downloadText(`opepenator-${Date.now()}.json`, JSON.stringify(cfg, null, 2));
+      toast('Exported.');
+    });
+
+    $('#importBtn').addEventListener('click', () => $('#fileInput').click());
+    $('#fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try { applyConfig(JSON.parse(reader.result)); }
+        catch { toast('Invalid JSON.'); }
+      };
+      reader.readAsText(file);
+      e.target.value = "";
+    });
+
+    // sliders write to targets
+    $('#sw').addEventListener('input', (e)=>{ state.tStrokeWidth = +e.target.value; syncPanel(); });
+    $('#ps').addEventListener('input', (e)=>{ state.tPulsatingSpeed = +e.target.value; syncPanel(); });
+    $('#sp').addEventListener('input', (e)=>{ state.tSpacing = +e.target.value; syncPanel(); });
+    $('#sc').addEventListener('input', (e)=>{ state.tScale = +e.target.value; syncPanel(); });
+    $('#rt').addEventListener('input', (e)=>{ state.tRotation = +e.target.value; syncPanel(); });
+    $('#fd').addEventListener('input', (e)=>{ state.tFlatDepth = +e.target.value; syncPanel(); });
+
+    $('#waveToggle').addEventListener('click', ()=>{
+      state.waveAnimationEnabled = !state.waveAnimationEnabled;
+      syncPanel();
+      toast(state.waveAnimationEnabled ? 'Wave ON' : 'Wave OFF');
+    });
+    $('#ws').addEventListener('input', (e)=>{ state.tWaveSpeed = +e.target.value; syncPanel(); });
+    $('#wa').addEventListener('input', (e)=>{ state.tWaveAmplitude = +e.target.value; syncPanel(); });
+    $('#wf').addEventListener('input', (e)=>{ state.tWaveFrequency = +e.target.value; syncPanel(); });
+
+    $('#lightToggle').addEventListener('click', ()=>{
+      state.lightsOn = !state.lightsOn;
+      syncPanel();
+      toast(state.lightsOn ? 'Shading ON' : 'Shading OFF');
+    });
+
+    // ============================================================
+    // Keyboard shortcuts
+    // ============================================================
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea') return;
+
+      const k = e.key.toLowerCase();
+
+      if (k === 'm') applyMode(state.modeIndex + 1);
+      else if (k === 'l') applyLook(state.lookIndex + 1);
+      else if (k === 's') {
+        state.shapeIndex = (state.shapeIndex + 1) % SHAPES.length;
+        syncButtons();
+        toast(`Shape: ${SHAPES[state.shapeIndex].name}`);
+      }
+      else if (k === 'b') applyBg(state.bgIndex + 1);
+      else if (k === 'r') surprise();
+      else if (k === '.') {
+        panelEl.classList.toggle('show');
+        moreBtn.textContent = panelEl.classList.contains('show') ? 'Less' : 'More';
+      }
+      else if (k === 'g') {
+        state.waveAnimationEnabled = !state.waveAnimationEnabled;
+        syncPanel();
+        toast(state.waveAnimationEnabled ? 'Wave ON' : 'Wave OFF');
+      }
+      else if (k === 'h') {
+        state.lightsOn = !state.lightsOn;
+        syncPanel();
+        toast(state.lightsOn ? 'Shading ON' : 'Shading OFF');
+      }
+      else if (k === 'enter') {
+        if (state.gifRecording) stopGifRecording(true);
+        else startGifRecording();
+      }
+    });
+
+    // ============================================================
+    // p5 setup/draw + responsive resize
+    // ============================================================
+    function computeCanvasSizing() {
+      const mobile = window.innerWidth <= 720;
+      state.canvasSize = mobile ? 420 : 800;
+      state.cellSize = mobile ? 52 : 100;
+
+      // keep sensible defaults, but still allow the slider to override afterward
+      if (!Number.isFinite(state.tFlatDepth)) state.tFlatDepth = mobile ? 6 : 10;
+    }
+
+    function setup() {
+      setAttributes('preserveDrawingBuffer', true);
+
+      computeCanvasSizing();
+      const cnv = createCanvas(state.canvasSize, state.canvasSize, WEBGL);
+      cnv.parent($('#preview'));
+      state.canvasEl = cnv.elt;
+
+      pixelDensity(1);
+
+      angleMode(RADIANS);
+      ellipseMode(CENTER);
+
+      resetPulsingPhases();
+
+      applyMode(0);
+      applyLook(0);
+      applyBg(0);
+
+      syncButtons();
+      syncPanel();
+      toast('Ready.');
+    }
+
+    function windowResized() {
+      const prev = state.canvasSize;
+      computeCanvasSizing();
+      if (state.canvasSize !== prev) {
+        resizeCanvas(state.canvasSize, state.canvasSize);
+      }
+    }
+
+    // smoothing helper
+    function easeToCurrent(dtScale) {
+      const a = 0.18 * dtScale;
+
+      state.strokeWidth = lerp(state.strokeWidth, state.tStrokeWidth, a);
+      state.spacing = lerp(state.spacing, state.tSpacing, a);
+      state.scale = lerp(state.scale, state.tScale, a);
+      state.rotation = lerp(state.rotation, state.tRotation, a);
+      state.pulsatingSpeed = lerp(state.pulsatingSpeed, state.tPulsatingSpeed, a);
+
+      state.waveAmplitude = lerp(state.waveAmplitude, state.tWaveAmplitude, a);
+      state.waveFrequency = lerp(state.waveFrequency, state.tWaveFrequency, a);
+      state.waveSpeed = lerp(state.waveSpeed, state.tWaveSpeed, a);
+
+      // FIX: smooth flatDepth toward target so the slider actually affects geometry
+      state.flatDepth = lerp(state.flatDepth, state.tFlatDepth, a);
+
+      if (!state.isFlickering) {
+        state.bgColor[0] = lerp(state.bgColor[0], state.tBgColor[0], 0.18 * dtScale);
+        state.bgColor[1] = lerp(state.bgColor[1], state.tBgColor[1], 0.18 * dtScale);
+        state.bgColor[2] = lerp(state.bgColor[2], state.tBgColor[2], 0.18 * dtScale);
+      }
+    }
+
+    function draw() {
+      const dtScale = Math.max(0.25, Math.min(3.0, deltaTime / 16.6667));
+
+      easeToCurrent(dtScale);
+      updateFlickeringBackground();
+
+      background(state.bgColor[0], state.bgColor[1], state.bgColor[2]);
+
+      if (keyIsDown(32)) orbitControl(1.5);
+      if (state.waveAnimationEnabled) state.waveTime += state.waveSpeed * dtScale;
+
+      if (!state.lightsOn) {
+        noLights();
+      } else {
+        ambientLight(0);
+        directionalLight(255,255,255, 0,1,-2);
+        pointLight(225,225,225, 100,200,150);
+        spotLight(50,50,50, 0,-200,300, 0,0,-1, PI/4, 1);
+      }
+
+      setStrokeP5();
+
+      const rows = 8, cols = 8;
+      const cellSize = state.cellSize;
+      const spacing = state.spacing;
+
+      translate(0, 0, -200);
+
+      const gridW = cols * cellSize * spacing;
+      const gridH = rows * cellSize * spacing;
+      const left = -gridW/2;
+      const top  = -gridH/2;
+
+      const globalShape = SHAPES[state.shapeIndex].id;
+
+      // ============================================================
+      // SPECIAL RENDER: Opepen 4 mode + Shape: Mode => composite SVG
+      // ============================================================
+      if (MODES[state.modeIndex]?.name === "Opepen 4" && globalShape === 'M') {
+        drawOpepen4Composite(left, top, gridW, gridH, cellSize, spacing, dtScale);
+      } else {
+        // Normal per-cell rendering
+        for (let i=0; i<rows; i++) {
+          for (let j=0; j<cols; j++) {
+            const cell = state.visibilityPattern[i][j];
+            if (!cell) continue;
+
+            const parsed = parseCellToken(cell);
+
+           let shapeId;
+if (globalShape === 'M') {
+  shapeId = parsed.shapeId; // normal mode token per cell
+} else if (globalShape === 'R') {
+  shapeId = state.randomShapePattern[i][j] || parsed.shapeId; // random per occupied cell
+} else {
+  shapeId = globalShape; // forced single shape
+}
+
+
+            // Color: token-based
+            setFillColorP5(parsed.colorCode);
+
+            const phase = state.pulsatingValues[i][j];
+            state.pulsatingValues[i][j] += state.pulsatingSpeed * dtScale;
+
+            const sizeOffset = map(sin(phase), -0.1, 2, -cellSize/2, cellSize/1) * state.scale;
+            const twist = map(sin(phase), -1, 1, -HALF_PI/5, PI/5) * state.rotation;
+
+            let waveOffset = 0;
+            if (state.waveAnimationEnabled) {
+              const id = j + i * cols;
+              waveOffset = sin(id * state.waveFrequency * 0.01 + state.waveTime) * state.waveAmplitude;
+            }
+
+            push();
+            translate(
+              left + j * cellSize * spacing + cellSize/2,
+              top  + i * cellSize * spacing + cellSize/2 - waveOffset,
+              0
+            );
+            rotateX(twist);
+            rotateY(twist);
+
+            if (shapeId === '1') {
+              box(cellSize + sizeOffset);
+
+} else if (shapeId === '2') {
+  // 2D disc that always faces the camera (billboard)
+  const sw = state.strokeWidth;
+  if (sw <= 0.001) noStroke();
+
+  // cancel the per-cell 3D tilt so the disc faces camera
+  rotateY(-twist);
+  rotateX(-twist);
+
+  // tiny forward offset reduces z-fighting with other tiles
+  translate(0, 0, state.flatDepth * 0.35);
+
+  circle(0, 0, cellSize + sizeOffset);
+
+  if (sw > 0.001) setStrokeP5();
+
+
+            } else if (shapeId === '3') {
+              const baseSize = (cellSize + sizeOffset) / 2;
+              const h = (cellSize + sizeOffset);
+              beginShape(TRIANGLES);
+              const v0 = createVector(0, -h/2, 0);
+              const v1 = createVector(-baseSize, h/2, -baseSize);
+              const v2 = createVector(baseSize,  h/2, -baseSize);
+              const v3 = createVector(baseSize,  h/2,  baseSize);
+              const v4 = createVector(-baseSize, h/2,  baseSize);
+              vertex(v0.x,v0.y,v0.z); vertex(v1.x,v1.y,v1.z); vertex(v2.x,v2.y,v2.z);
+              vertex(v0.x,v0.y,v0.z); vertex(v2.x,v2.y,v2.z); vertex(v3.x,v3.y,v3.z);
+              vertex(v0.x,v0.y,v0.z); vertex(v3.x,v3.y,v3.z); vertex(v4.x,v4.y,v4.z);
+              vertex(v0.x,v0.y,v0.z); vertex(v4.x,v4.y,v4.z); vertex(v1.x,v1.y,v1.z);
+              endShape(CLOSE);
+              beginShape();
+              vertex(v1.x,v1.y,v1.z);
+              vertex(v2.x,v2.y,v2.z);
+              vertex(v3.x,v3.y,v3.z);
+              vertex(v4.x,v4.y,v4.z);
+              endShape(CLOSE);
+
+            } else if (shapeId === '4') {
+              const sw = state.strokeWidth;
+              noStroke();
+              sphere((cellSize + sizeOffset)/1.5);
+              if (sw > 0.001) setStrokeP5();
+
+            } else if (shapeId === '6') {
+              const sw = state.strokeWidth;
+              if (sw <= 0.001) noStroke();
+              const w = cellSize + sizeOffset;
+              const d = Math.max(0.001, state.flatDepth);
+              box(w, w, d);
+              if (sw > 0.001) setStrokeP5();
+
+            } else if (shapeId === '7') {
+              const hasTokenCorner = (typeof cell === 'string' && cell.length > 2);
+              const corner = hasTokenCorner ? parsed.corner : state.quarterCorners[i][j];
+
+              const sw = state.strokeWidth;
+              if (sw <= 0.001) noStroke();
+              translate(0, 0, state.flatDepth * 0.5);
+              drawQuarterTile(cellSize + sizeOffset, corner);
+              if (sw > 0.001) setStrokeP5();
+            }
+
+            pop();
+          }
+        }
+      }
+
+      // GIF capture with progress
+      if (state.gifRecording && state.gifCapturer) {
+        state.gifCapturer.capture(state.canvasEl);
+        state.gifFrameCount++;
+
+        if (state.gifFrameCount % 15 === 0) {
+          toast(`Recording ${state.gifFrameCount}/${GIF_TOTAL_FRAMES}`);
+        }
+        setMintButtonLabel();
+
+        if (state.gifFrameCount >= GIF_TOTAL_FRAMES) {
+          stopGifRecording(true);
+        }
+      }
+    }
+
+    window.setup = setup;
+    window.draw = draw;
+    window.windowResized = windowResized;
+  </script>
+</body>
+</html>
